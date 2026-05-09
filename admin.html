@@ -1,73 +1,60 @@
+ 
 <!DOCTYPE html>
-<html lang="es">
+<html>
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Panel Control Simplificado</title>
+    <title>Panel Flota</title>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <style>
-        body { font-family: sans-serif; background: #f0f2f5; padding: 15px; text-align: center; }
-        .card { background: white; padding: 20px; border-radius: 10px; box-shadow: 0 2px 5px rgba(0,0,0,0.1); margin-bottom: 20px; }
-        canvas { max-height: 250px; }
+        body { font-family: sans-serif; background: #f0f2f5; padding: 10px; text-align: center; }
+        .card { background: white; padding: 15px; border-radius: 10px; box-shadow: 0 2px 5px rgba(0,0,0,0.1); margin-bottom: 15px; }
+        canvas { max-height: 250px; width: 100% !important; }
     </style>
 </head>
 <body>
 
-    <h2>📊 Estadísticas de Flota</h2>
-    
-    <div class="card">
-        <h3>Total Reportes: <span id="total">0</span></h3>
-    </div>
-
-    <div class="card">
-        <h3>Tipos de Avería</h3>
-        <canvas id="chartTipos"></canvas>
-    </div>
-
-    <div class="card">
-        <h3>Reportes por Matrícula</h3>
-        <canvas id="chartVehiculos"></canvas>
-    </div>
+    <h3>📊 Estadísticas de Flota</h3>
+    <div class="card">Total Reportes: <b id="total">0</b></div>
+    <div class="card"><canvas id="c1"></canvas></div>
+    <div class="card"><canvas id="c2"></canvas></div>
 
 <script>
-    const URL = "https://ebzkikyajxcqnpdxhpjw.supabase.co";
+    const URL = "https://ebzkikyajxcqnpdxhpjw.supabase.co/rest/v1/reportes";
     const KEY = "EyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImViemtpa3lhanhjcW5wZHhocGp3Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzgxNDgyODIsImV4cCI6MjA5MzcyNDI4Mn0.u9Lyz-iLDpVNPVGCKv-CC50iY6lY4L-pqSyhglawOrs";
-    
-    async function loadStats() {
+
+    async function start() {
         try {
-            // Solo pedimos las columnas que existen de verdad
-            const res = await fetch(`${URL}/rest/v1/reportes?select=tipo,matricula`, { 
-                headers: { "apikey": KEY, "Authorization": "Bearer " + KEY } 
-            });
+            const res = await fetch(URL, { headers: { "apikey": KEY, "Authorization": "Bearer " + KEY } });
             const data = await res.json();
             
-            if (!Array.isArray(data)) throw new Error();
-
             document.getElementById('total').innerText = data.length;
 
             const tipos = {};
-            const vehiculos = {};
+            const mats = {};
 
             data.forEach(r => {
-                if(r.tipo) tipos[r.tipo] = (tipos[r.tipo] || 0) + 1;
-                if(r.matricula) vehiculos[r.matricula] = (vehiculos[r.matricula] || 0) + 1;
+                if (r.tipo) tipos[r.tipo] = (tipos[r.tipo] || 0) + 1;
+                if (r.matricula) mats[r.matricula] = (mats[r.matricula] || 0) + 1;
             });
 
-            new Chart(document.getElementById('chartTipos'), {
+            // Gráfico 1: Tipos
+            new Chart(document.getElementById('c1'), {
                 type: 'pie',
                 data: { labels: Object.keys(tipos), datasets: [{ data: Object.values(tipos), backgroundColor: ['#4299e1', '#ed8936'] }] }
             });
 
-            new Chart(document.getElementById('chartVehiculos'), {
+            // Gráfico 2: Matrículas
+            new Chart(document.getElementById('c2'), {
                 type: 'bar',
-                data: { labels: Object.keys(vehiculos), datasets: [{ label: 'Cant.', data: Object.values(vehiculos), backgroundColor: '#2d3748' }] }
+                data: { labels: Object.keys(mats), datasets: [{ label: 'Reportes', data: Object.values(mats), backgroundColor: '#2d3748' }] }
             });
 
-        } catch (e) { 
-            alert("Todavía hay un desajuste con las columnas de Supabase"); 
+        } catch (e) {
+            alert("Error de conexión. Verifica que el RLS siga desactivado en Supabase.");
         }
     }
-    loadStats();
+    start();
 </script>
 </body>
 </html>
