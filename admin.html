@@ -1,5 +1,4 @@
- 
-<!DOCTYPE html>
+ <!DOCTYPE html>
 <html>
 <head>
     <meta charset="UTF-8">
@@ -13,11 +12,10 @@
     </style>
 </head>
 <body>
-
     <h3>📊 Estadísticas de Flota</h3>
     <div class="card">Total Reportes: <b id="total">0</b></div>
-    <div class="card"><canvas id="c1"></canvas></div>
-    <div class="card"><canvas id="c2"></canvas></div>
+    <div class="card"><h4>Tipos de Avería</h4><canvas id="c1"></canvas></div>
+    <div class="card"><h4>Reportes por Matrícula</h4><canvas id="c2"></canvas></div>
 
 <script>
     const URL = "https://ebzkikyajxcqnpdxhpjw.supabase.co/rest/v1/reportes";
@@ -25,7 +23,9 @@
 
     async function start() {
         try {
-            const res = await fetch(URL, { headers: { "apikey": KEY, "Authorization": "Bearer " + KEY } });
+            const res = await fetch(URL, { 
+                headers: { "apikey": KEY, "Authorization": "Bearer " + KEY } 
+            });
             const data = await res.json();
             
             document.getElementById('total').innerText = data.length;
@@ -38,23 +38,23 @@
                 if (r.matricula) mats[r.matricula] = (mats[r.matricula] || 0) + 1;
             });
 
-            // Gráfico 1: Tipos
             new Chart(document.getElementById('c1'), {
                 type: 'pie',
-                data: { labels: Object.keys(tipos), datasets: [{ data: Object.values(tipos), backgroundColor: ['#4299e1', '#ed8936'] }] }
+                data: { labels: Object.keys(tipos), datasets: [{ data: Object.values(tipos), backgroundColor: ['#4299e1', '#ed8936', '#48bb78', '#f6e05e'] }] }
             });
 
-            // Gráfico 2: Matrículas
             new Chart(document.getElementById('c2'), {
                 type: 'bar',
                 data: { labels: Object.keys(mats), datasets: [{ label: 'Reportes', data: Object.values(mats), backgroundColor: '#2d3748' }] }
             });
 
         } catch (e) {
-            alert("Error de conexión. Verifica que el RLS siga desactivado en Supabase.");
+            console.error(e);
+            alert("Todavía no hay permiso. Asegúrate de añadir el CORS en Supabase.");
         }
     }
     start();
 </script>
 </body>
 </html>
+       body { font-family: sans-serif; background:             data.forEach(r 
