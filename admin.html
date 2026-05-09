@@ -1,0 +1,83 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Panel de Control - Flota</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        body { font-family: sans-serif; background: #f0f2f5; padding: 15px; }
+        .container { max-width: 800px; margin: auto; }
+        .card { background: white; padding: 20px; border-radius: 10px; box-shadow: 0 2px 5px rgba(0,0,0,0.1); margin-bottom: 20px; text-align: center; }
+        h2 { color: #2d3748; margin-bottom: 20px; }
+        .stats-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 15px; }
+        @media (max-width: 600px) { .stats-grid { grid-template-columns: 1fr; } }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <h2>📊 Panel de Control de Flota</h2>
+    
+    <div class="card">
+        <h3>Total Reportes</h3>
+        <h1 id="total">0</h1>
+    </div>
+
+    <div class="stats-grid">
+        <div class="card">
+            <h3>Estado de Averías</h3>
+            <canvas id="chartTipos"></canvas>
+        </div>
+        <div class="card">
+            <h3>Reportes por Vehículo</h3>
+            <canvas id="chartVehiculos"></canvas>
+        </div>
+    </div>
+</div>
+
+<script>
+    const URL = "https://ebzkikyajxcqnpdxhpjw.supabase.co";
+    const KEY = "EyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImViemtpa3lhanhjcW5wZHhocGp3Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzgxNDgyODIsImV4cCI6MjA5MzcyNDI4Mn0.u9Lyz-iLDpVNPVGCKv-CC50iY6lY4L-pqSyhglawOrs";
+    const h = { "apikey": KEY, "Authorization": "Bearer " + KEY };
+
+    async function loadStats() {
+        try {
+            const res = await fetch(`${URL}/rest/v1/reportes`, { headers: h });
+            const data = await res.json();
+            
+            document.getElementById('total').innerText = data.length;
+
+            const tipos = {};
+            const vehiculos = {};
+
+            data.forEach(r => {
+                tipos[r.tipo] = (tipos[r.tipo] || 0) + 1;
+                vehiculos[r.matricula] = (vehiculos[r.matricula] || 0) + 1;
+            });
+
+            // Gráfico Tarta
+            new Chart(document.getElementById('chartTipos'), {
+                type: 'pie',
+                data: {
+                    labels: Object.keys(tipos),
+                    datasets: [{ data: Object.values(tipos), backgroundColor: ['#4299e1', '#ed8936'] }]
+                }
+            });
+
+            // Gráfico Barras
+            new Chart(document.getElementById('chartVehiculos'), {
+                type: 'bar',
+                data: {
+                    labels: Object.keys(vehiculos),
+                    datasets: [{ label: 'Reportes', data: Object.values(vehiculos), backgroundColor: '#2d3748' }]
+                }
+            });
+
+        } catch (e) { alert("Error al cargar estadísticas"); }
+    }
+
+    loadStats();
+</script>
+</body>
+</html>
