@@ -1,0 +1,130 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Reportes de Flota - Conductores</title>
+    <style>
+        body { font-family: sans-serif; background: #f0f2f5; padding: 20px; }
+        .card { background: white; padding: 15px; border-radius: 10px; box-shadow: 0 2px 5px rgba(0,0,0,0.1); margin-bottom: 15px; }
+        input, select, textarea, button { width: 100%; padding: 10px; margin: 8px 0; border-radius: 5px; border: 1px solid #ccc; box-sizing: border-box; }
+        button { background: #2d3748; color: white; font-weight: bold; border: none; cursor: pointer; }
+        .Mantenimiento { border-left: 10px solid #4299e1; }
+        .Avería { border-left: 10px solid #ed8936; }
+        h2 { border-bottom: 2px solid #ccc; padding-bottom: 5px; margin-top: 30px; }
+        #preview { width: 100%; max-height: 200px; object-fit: cover; border-radius: 5px; display: none; margin-top: 10px; border: 1px solid #ddd; }
+        #filtro { border: 2px solid #2d3748; background: #fff; }
+    </style>
+</head>
+<body>
+
+    <div class="card">
+        <h1>🚛 Reporte de Flota</h1>
+        <input type="text" id="conductor" placeholder="Nombre del conductor">
+        <input type="text" id="v" placeholder="Matrícula del vehículo">
+        <select id="t">
+            <option value="Mantenimiento">Mantenimiento</option>
+            <option value="Avería">Avería</option>
+        </select>
+        <textarea id="d" placeholder="Describe el problema o revisión"></textarea>
+        
+        <label style="font-size: 14px; font-weight: bold;">📷 Adjuntar Foto:</label>
+        <input type="file" id="f" accept="image/*" capture="environment">
+        <img id="preview" src="" alt="Vista previa">
+        
+        <button onclick="save()">ENVIAR REPORTE</button>
+    </div>
+
+    <h2>Historial de Reportes</h2>
+    <input type="text" id="filtro" placeholder="🔍 Buscar por matrícula..." oninput="filtrar()">
+    
+    <div id="l">Cargando historial...</div>
+
+    <script>
+        const fix = (s) => s.toString().replace(/\s/g, "").trim();
+        const URL = "https://ebzkikyajxcqnpdxhpjw.supabase.co";
+        const KEY = fix("eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImViemtpa3lhanhjcW5wZHhocGp3Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzgxNDgyODIsImV4cCI6MjA5MzcyNDI4Mn0.u9Lyz-iLDpVNPVGCKv-CC50iY6lY4L-pqSyhglawOrs");
+        const h = { "apikey": KEY, "Authorization": "Bearer " + KEY, "Content-Type": "application/json", "Prefer": "return=representation" };
+
+        // Filtro en tiempo real
+        function filtrar() {
+            const texto = document.getElementById('filtro').value.toUpperCase();
+            const tarjetas = document.getElementById('l').querySelectorAll('.card');
+            tarjetas.forEach(t => {
+                const matricula = t.querySelector('b').innerText.toUpperCase();
+                t.style.display = matricula.includes(texto) ? "" : "none";
+            });
+        }
+
+        // Previsualización y compresión de imagen
+        document.getElementById('f').onchange = function(evt) {
+            const file = this.files[0];
+            if (file) {
+                const reader = new FileReader();
+                reader.onload = (e) => {
+                    const img = new Image();
+                    img.onload = () => {
+                        const canvas = document.createElement('canvas');
+                        const MAX_WIDTH = 800;
+                        canvas.width = MAX_WIDTH;
+                        canvas.height = (img.height * MAX_WIDTH) / img.width;
+                        canvas.getContext('2d').drawImage(img, 0, 0, canvas.width, canvas.height);
+                        document.getElementById('preview').src = canvas.toDataURL('image/jpeg', 0.7);
+                        document.getElementById('preview').style.display = 'block';
+                    };
+                    img.src = e.target.result;
+                };
+                reader.readAsDataURL(file);
+            }
+        };
+
+        // Guardar reporte
+        async function save() {
+            const c = document.getElementById('conductor').value;
+            const v = document.getElementById('v').value;
+            const t = document.getElementById('t').value;
+            const d = document.getElementById('d').value;
+            const preview = document.getElementById('preview');
+            
+            if (!v || !d || !c) return alert("Por favor, rellena todos los campos (Nombre, Matrícula y Descripción)");
+
+            try {
+                const res = await fetch(`${URL}/rest/v1/reportes`, {
+                    method: "POST",
+                    headers: h,
+                    body: JSON.stringify({ 
+                        conductor: c, 
+                        matricula: v, 
+                        tipo: t, 
+                        descripcion: d, 
+                        foto_url: preview.style.display === 'block' ? preview.src : "" 
+                    })
+                });
+                if (res.ok) { 
+                    alert("✅ Reporte enviado correctamente"); 
+                    location.reload(); 
+                }
+            } catch (e) { alert("Error al conectar con la base de datos"); }
+        }
+
+        // Cargar historial (Sin botón de borrar)
+        async function load() {
+            try {
+                const res = await fetch(`${URL}/rest/v1/reportes?order=created_at.desc`, { headers: h });
+                const data = await res.json();
+                document.getElementById('l').innerHTML = data.length === 0 ? "No hay reportes registrados." : data.map(r => `
+                    <div class="card ${r.tipo}">
+                        <b>${r.matricula}</b> - ${r.tipo}
+                        <p style="font-size: 0.9em; color: #666;">👷 Conductor: ${r.conductor || 'No indicado'}</p>
+                        <p>${r.descripcion}</p>
+                        ${r.foto_url ? `<img src="${r.foto_url}" style="width:100%; border-radius:5px; margin-top:10px;">` : ''}
+                    </div>
+                `).join('');
+            } catch (e) { document.getElementById('l').innerHTML = "Error al cargar los datos."; }
+        }
+
+        load();
+    </script>
+</body>
+</html>
+
