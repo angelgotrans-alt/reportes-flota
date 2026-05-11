@@ -1,45 +1,67 @@
-<script>
-    const PROXY = "https://api.allorigins.win/get?url=";
-    const SUPABASE_URL = "https://ebzkikyajxcqnpdxhpjw.supabase.co/rest/v1/reportes?select=*";
-    const KEY = "sb_publishable_5KY63IWWB48yQohE_X29kQ_j22j75dO";
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Panel Flota</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        body { font-family: sans-serif; background: #f0f2f5; padding: 20px; text-align: center; }
+        .card { background: white; padding: 20px; border-radius: 15px; box-shadow: 0 4px 6px rgba(0,0,0,0.1); margin-bottom: 20px; }
+        .grande { font-size: 3em; font-weight: bold; color: #007bff; }
+        canvas { max-width: 100%; height: 280px !important; }
+    </style>
+</head>
+<body>
+    <div class="card">
+        <h2>Reportes Totales</h2>
+        <div id="contador" class="grande">...</div>
+    </div>
+    <div class="card"><h3>Distribución por Tipo</h3><canvas id="grafico1"></canvas></div>
+    <div class="card"><h3>Por Matrícula</h3><canvas id="grafico2"></canvas></div>
 
-    async function cargar() {
-        try {
-            const finalUrl = PROXY + encodeURIComponent(SUPABASE_URL + "&apikey=" + KEY);
-            const response = await fetch(finalUrl);
-            const json = await response.json();
-            const data = JSON.parse(json.contents); 
+    <script>
+        const URL = "https://ebzkikyajxcqnpdxhpjw.supabase.co/rest/v1/reportes?select=*";
+        const KEY = "sb_publishable_5KY63IWWB48yQohE_X29kQ_j22j75dO";
 
-            // Si la tabla devuelve algo, el número cambiará sí o sí
-            document.getElementById('total').innerText = data.length;
-
-            if (data.length > 0) {
-                const tipos = {}; const mats = {};
+        async function cargarDatos() {
+            try {
+                const res = await fetch(URL, {
+                    headers: { "apikey": KEY, "Authorization": "Bearer " + KEY }
+                });
+                const datos = await res.json();
                 
-                data.forEach(r => {
-                    // Buscamos cualquier columna que se parezca a "tipo" o "matricula"
-                    // Esto arregla el problema si escribiste "Tipo" o "Matrícula"
-                    const valorTipo = r.tipo || r.Tipo || r.tipo_averia || "Otro";
-                    const valorMat = r.matricula || r.Matricula || r.matrícula || "Desconocido";
+                // Actualizar número total
+                document.getElementById('contador').innerText = datos.length;
 
-                    tipos[valorTipo] = (tipos[valorTipo] || 0) + 1;
-                    mats[valorMat] = (mats[valorMat] || 0) + 1;
-                });
+                if (datos.length > 0) {
+                    let tipos = {}; let mats = {};
+                    datos.forEach(d => {
+                        // Usamos nombres flexibles por si hay mayúsculas
+                        let t = d.tipo || d.Tipo || "Otro";
+                        let m = d.matricula || d.Matricula || "S/M";
+                        tipos[t] = (tipos[t] || 0) + 1;
+                        mats[m] = (mats[m] || 0) + 1;
+                    });
 
-                // Dibujar gráficas
-                new Chart(document.getElementById('chart1'), { 
-                    type: 'pie', 
-                    data: { labels: Object.keys(tipos), datasets: [{ data: Object.values(tipos), backgroundColor: ['#FF6384', '#36A2EB', '#FFCE56'] }] } 
-                });
-                new Chart(document.getElementById('chart2'), { 
-                    type: 'bar', 
-                    data: { labels: Object.keys(mats), datasets: [{ label: 'Averías', data: Object.values(mats), backgroundColor: '#34495e' }] } 
-                });
+                    // Gráfico 1
+                    new Chart(document.getElementById('grafico1'), {
+                        type: 'pie',
+                        data: { labels: Object.keys(tipos), datasets: [{ data: Object.values(tipos), backgroundColor: ['#ff6384','#36a2eb','#ffce56'] }] }
+                    });
+
+                    // Gráfico 2
+                    new Chart(document.getElementById('grafico2'), {
+                        type: 'bar',
+                        data: { labels: Object.keys(mats), datasets: [{ label: 'Cantidad', data: Object.values(mats), backgroundColor: '#007bff' }] }
+                    });
+                }
+            } catch (err) {
+                document.getElementById('contador').innerText = "Error";
+                console.error(err);
             }
-        } catch (e) {
-            document.getElementById('total').innerText = "Error de datos";
         }
-    }
-    cargar();
-</script>
- 
+        cargarDatos();
+    </script>
+</body>
+</html>
