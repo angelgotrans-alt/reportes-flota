@@ -1,27 +1,9 @@
- <!DOCTYPE html>
-<html>
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Panel Flota - Conexión Forzada</title>
-    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-    <style>
-        body { font-family: sans-serif; background: #f0f2f5; padding: 15px; text-align: center; }
-        .card { background: white; padding: 15px; border-radius: 10px; box-shadow: 0 2px 5px rgba(0,0,0,0.1); margin-bottom: 20px; }
-        canvas { max-height: 250px; width: 100% !important; }
-        #error-msg { color: red; font-weight: bold; display: none; margin-top: 20px; }
-    </style>
-</head>
-<body>
-    <h3>📊 Estadísticas de Flota</h3>
-    <div id="error-msg">⚠️ Error de conexión. Revisa la tabla en Supabase.</div>
-    <div class="card">Total Reportes: <b id="total">0</b></div>
-    <div class="card"><h4>Tipos de Avería</h4><canvas id="c1"></canvas></div>
-    <div class="card"><h4>Reportes por Matrícula</h4><canvas id="c2"></canvas></div>
-
 <script>
-    // URL con truco de selección para evitar bloqueos
-    const URL = "https://ebzkikyajxcqnpdxhpjw.supabase.co/rest/v1/reportes?select=*";
+    // Usamos un proxy para saltarnos el bloqueo de CORS
+    const PROXY = "https://corsproxy.io/?";
+    const BASE_URL = "https://ebzkikyajxcqnpdxhpjw.supabase.co/rest/v1/reportes?select=*";
+    const URL = PROXY + encodeURIComponent(BASE_URL);
+    
     const KEY = "EyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImViemtpa3lhanhjcW5wZHhocGp3Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzgxNDgyODIsImV4cCI6MjA5MzcyNDI4Mn0.u9Lyz-iLDpVNPVGCKv-CC50iY6lY4L-pqSyhglawOrs";
 
     async function cargarDatos() {
@@ -30,17 +12,14 @@
                 method: 'GET',
                 headers: {
                     "apikey": KEY,
-                    "Authorization": "Bearer " + KEY,
-                    "Content-Type": "application/json"
+                    "Authorization": "Bearer " + KEY
                 }
             });
 
-            if (!respuesta.ok) throw new Error("Fallo en la red");
-
             const datos = await respuesta.json();
+            
+            // Si llegamos aquí, ¡el CORS ya no es un problema!
             document.getElementById('total').innerText = datos.length;
-
-            if (datos.length === 0) return;
 
             const tipos = {};
             const matriculas = {};
@@ -50,7 +29,6 @@
                 if (item.matricula) matriculas[item.matricula] = (matriculas[item.matricula] || 0) + 1;
             });
 
-            // Gráfica de Tarta
             new Chart(document.getElementById('c1'), {
                 type: 'pie',
                 data: {
@@ -62,7 +40,6 @@
                 }
             });
 
-            // Gráfica de Barras
             new Chart(document.getElementById('c2'), {
                 type: 'bar',
                 data: {
@@ -79,10 +56,8 @@
         } catch (error) {
             console.error("Error:", error);
             document.getElementById('error-msg').style.display = 'block';
+            document.getElementById('error-msg').innerText = "Aún no hay datos o el proxy está cargando...";
         }
     }
-
     cargarDatos();
 </script>
-</body>
-</html>
