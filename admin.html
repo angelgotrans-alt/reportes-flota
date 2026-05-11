@@ -3,58 +3,86 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Panel Flota</title>
+    <title>Panel Flota - Conexión Forzada</title>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <style>
-        body { font-family: sans-serif; background: #f0f2f5; padding: 10px; text-align: center; }
-        .card { background: white; padding: 15px; border-radius: 10px; box-shadow: 0 2px 5px rgba(0,0,0,0.1); margin-bottom: 15px; }
+        body { font-family: sans-serif; background: #f0f2f5; padding: 15px; text-align: center; }
+        .card { background: white; padding: 15px; border-radius: 10px; box-shadow: 0 2px 5px rgba(0,0,0,0.1); margin-bottom: 20px; }
         canvas { max-height: 250px; width: 100% !important; }
+        #error-msg { color: red; font-weight: bold; display: none; margin-top: 20px; }
     </style>
 </head>
 <body>
     <h3>📊 Estadísticas de Flota</h3>
+    <div id="error-msg">⚠️ Error de conexión. Revisa la tabla en Supabase.</div>
     <div class="card">Total Reportes: <b id="total">0</b></div>
     <div class="card"><h4>Tipos de Avería</h4><canvas id="c1"></canvas></div>
     <div class="card"><h4>Reportes por Matrícula</h4><canvas id="c2"></canvas></div>
 
 <script>
-    const URL = "https://ebzkikyajxcqnpdxhpjw.supabase.co/rest/v1/reportes";
+    // URL con truco de selección para evitar bloqueos
+    const URL = "https://ebzkikyajxcqnpdxhpjw.supabase.co/rest/v1/reportes?select=*";
     const KEY = "EyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImViemtpa3lhanhjcW5wZHhocGp3Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzgxNDgyODIsImV4cCI6MjA5MzcyNDI4Mn0.u9Lyz-iLDpVNPVGCKv-CC50iY6lY4L-pqSyhglawOrs";
 
-    async function start() {
+    async function cargarDatos() {
         try {
-            const res = await fetch(URL, { 
-                headers: { "apikey": KEY, "Authorization": "Bearer " + KEY } 
+            const respuesta = await fetch(URL, {
+                method: 'GET',
+                headers: {
+                    "apikey": KEY,
+                    "Authorization": "Bearer " + KEY,
+                    "Content-Type": "application/json"
+                }
             });
-            const data = await res.json();
-            
-            document.getElementById('total').innerText = data.length;
+
+            if (!respuesta.ok) throw new Error("Fallo en la red");
+
+            const datos = await respuesta.json();
+            document.getElementById('total').innerText = datos.length;
+
+            if (datos.length === 0) return;
 
             const tipos = {};
-            const mats = {};
+            const matriculas = {};
 
-            data.forEach(r => {
-                if (r.tipo) tipos[r.tipo] = (tipos[r.tipo] || 0) + 1;
-                if (r.matricula) mats[r.matricula] = (mats[r.matricula] || 0) + 1;
+            datos.forEach(item => {
+                if (item.tipo) tipos[item.tipo] = (tipos[item.tipo] || 0) + 1;
+                if (item.matricula) matriculas[item.matricula] = (matriculas[item.matricula] || 0) + 1;
             });
 
+            // Gráfica de Tarta
             new Chart(document.getElementById('c1'), {
                 type: 'pie',
-                data: { labels: Object.keys(tipos), datasets: [{ data: Object.values(tipos), backgroundColor: ['#4299e1', '#ed8936', '#48bb78', '#f6e05e'] }] }
+                data: {
+                    labels: Object.keys(tipos),
+                    datasets: [{
+                        data: Object.values(tipos),
+                        backgroundColor: ['#4299e1', '#ed8936', '#48bb78', '#f6e05e', '#9f7aea']
+                    }]
+                }
             });
 
+            // Gráfica de Barras
             new Chart(document.getElementById('c2'), {
                 type: 'bar',
-                data: { labels: Object.keys(mats), datasets: [{ label: 'Reportes', data: Object.values(mats), backgroundColor: '#2d3748' }] }
+                data: {
+                    labels: Object.keys(matriculas),
+                    datasets: [{
+                        label: 'Reportes',
+                        data: Object.values(matriculas),
+                        backgroundColor: '#2d3748'
+                    }]
+                },
+                options: { scales: { y: { beginAtZero: true, ticks: { stepSize: 1 } } } }
             });
 
-        } catch (e) {
-            console.error(e);
-            alert("Todavía no hay permiso. Asegúrate de añadir el CORS en Supabase.");
+        } catch (error) {
+            console.error("Error:", error);
+            document.getElementById('error-msg').style.display = 'block';
         }
     }
-    start();
+
+    cargarDatos();
 </script>
 </body>
 </html>
-       body { font-family: sans-serif; background:             data.forEach(r 
