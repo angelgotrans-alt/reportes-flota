@@ -8,25 +8,30 @@
     <style>
         body { font-family: sans-serif; background: #f4f7f9; padding: 20px; text-align: center; }
         .card { background: white; padding: 20px; border-radius: 12px; box-shadow: 0 4px 6px rgba(0,0,0,0.1); margin-bottom: 20px; }
-        h2 { color: #2c3e50; }
-        .stats { font-size: 2em; font-weight: bold; color: #3498db; }
+        .stats { font-size: 2.5em; font-weight: bold; color: #3498db; }
         canvas { max-width: 100%; height: 250px !important; }
     </style>
 </head>
 <body>
-    <h2>📊 Estadísticas de la Flota</h2>
-    <div class="card">Total Reportes: <span id="total" class="stats">0</span></div>
+    <h2>📊 Panel de Estadísticas</h2>
+    <div class="card">Total Reportes: <div id="total" class="stats">0</div></div>
     <div class="card"><h4>Tipos de Avería</h4><canvas id="chart1"></canvas></div>
     <div class="card"><h4>Reportes por Matrícula</h4><canvas id="chart2"></canvas></div>
 
     <script>
-        const URL = "https://ebzkikyajxcqnpdxhpjw.supabase.co/rest/v1/reportes?select=*";
+        // TRUCO: Usamos un proxy para que Supabase no nos bloquee por CORS
+        const PROXY = "https://api.allorigins.win/get?url=";
+        const SUPABASE_URL = "https://ebzkikyajxcqnpdxhpjw.supabase.co/rest/v1/reportes?select=*";
         const KEY = "sb_publishable_5KY63IWWB48yQohE_X29kQ_j22j75dO";
 
         async function cargar() {
             try {
-                const res = await fetch(URL, { headers: { "apikey": KEY, "Authorization": "Bearer " + KEY } });
-                const data = await res.json();
+                // Pedimos los datos a través del túnel
+                const finalUrl = PROXY + encodeURIComponent(SUPABASE_URL + "&apikey=" + KEY);
+                const response = await fetch(finalUrl);
+                const json = await response.json();
+                const data = JSON.parse(json.contents); // Extraemos los datos reales
+
                 document.getElementById('total').innerText = data.length;
 
                 const tipos = {}; const mats = {};
@@ -37,9 +42,13 @@
 
                 new Chart(document.getElementById('chart1'), { type: 'pie', data: { labels: Object.keys(tipos), datasets: [{ data: Object.values(tipos), backgroundColor: ['#FF6384', '#36A2EB', '#FFCE56'] }] } });
                 new Chart(document.getElementById('chart2'), { type: 'bar', data: { labels: Object.keys(mats), datasets: [{ label: 'Averías', data: Object.values(mats), backgroundColor: '#34495e' }] } });
-            } catch (e) { alert("Casi listo... falta el paso del CORS en Supabase."); }
+            } catch (e) {
+                console.error(e);
+                document.getElementById('total').innerText = "Error de carga";
+            }
         }
         cargar();
     </script>
 </body>
 </html>
+
