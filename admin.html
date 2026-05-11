@@ -6,89 +6,40 @@
     <title>Panel Control Flota</title>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <style>
-        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background: #f4f7f9; margin: 0; padding: 20px; color: #333; }
-        .container { max-width: 800px; margin: auto; }
-        .card { background: white; padding: 20px; border-radius: 12px; box-shadow: 0 4px 6px rgba(0,0,0,0.1); margin-bottom: 20px; text-align: center; }
-        h2 { color: #2c3e50; margin-bottom: 20px; }
+        body { font-family: sans-serif; background: #f4f7f9; padding: 20px; text-align: center; }
+        .card { background: white; padding: 20px; border-radius: 12px; box-shadow: 0 4px 6px rgba(0,0,0,0.1); margin-bottom: 20px; }
+        h2 { color: #2c3e50; }
         .stats { font-size: 2em; font-weight: bold; color: #3498db; }
-        canvas { max-width: 100%; height: 300px !important; }
+        canvas { max-width: 100%; height: 250px !important; }
     </style>
 </head>
 <body>
-    <div class="container">
-        <h2>📊 Panel de Estadísticas</h2>
-        
-        <div class="card">
-            <div>Total de Reportes</div>
-            <div class="stats" id="total">0</div>
-        </div>
-
-        <div class="card">
-            <h3>Tipos de Avería</h3>
-            <canvas id="chartTipos"></canvas>
-        </div>
-
-        <div class="card">
-            <h3>Reportes por Matrícula</h3>
-            <canvas id="chartMats"></canvas>
-        </div>
-    </div>
+    <h2>📊 Estadísticas de la Flota</h2>
+    <div class="card">Total Reportes: <span id="total" class="stats">0</span></div>
+    <div class="card"><h4>Tipos de Avería</h4><canvas id="chart1"></canvas></div>
+    <div class="card"><h4>Reportes por Matrícula</h4><canvas id="chart2"></canvas></div>
 
     <script>
-        const URL = "https://ebzkikyajxcqnpdxhpjw.supabase.co/rest/v1/reportes";
-        const KEY = "EyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImViemtpa3lhanhjcW5wZHhocGp3Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzgxNDgyODIsImV4cCI6MjA5MzcyNDI4Mn0.u9Lyz-iLDpVNPVGCKv-CC50iY6lY4L-pqSyhglawOrs";
+        const URL = "https://ebzkikyajxcqnpdxhpjw.supabase.co/rest/v1/reportes?select=*";
+        const KEY = "sb_publishable_5KY63IWWB48yQohE_X29kQ_j22j75dO";
 
-        async function cargarDashboard() {
+        async function cargar() {
             try {
-                const res = await fetch(URL, {
-                    headers: { "apikey": KEY, "Authorization": "Bearer " + KEY }
-                });
+                const res = await fetch(URL, { headers: { "apikey": KEY, "Authorization": "Bearer " + KEY } });
                 const data = await res.json();
-                
                 document.getElementById('total').innerText = data.length;
 
-                const tipos = {};
-                const mats = {};
-
+                const tipos = {}; const mats = {};
                 data.forEach(r => {
                     if(r.tipo) tipos[r.tipo] = (tipos[r.tipo] || 0) + 1;
                     if(r.matricula) mats[r.matricula] = (mats[r.matricula] || 0) + 1;
                 });
 
-                // Gráfico Circular
-                new Chart(document.getElementById('chartTipos'), {
-                    type: 'pie',
-                    data: {
-                        labels: Object.keys(tipos),
-                        datasets: [{
-                            data: Object.values(tipos),
-                            backgroundColor: ['#FF6384', '#36A2EB', '#FFCE56', '#4BC0C0', '#9966FF']
-                        }]
-                    }
-                });
-
-                // Gráfico de Barras
-                new Chart(document.getElementById('chartMats'), {
-                    type: 'bar',
-                    data: {
-                        labels: Object.keys(mats),
-                        datasets: [{
-                            label: 'Nº de Averías',
-                            data: Object.values(mats),
-                            backgroundColor: '#34495e'
-                        }]
-                    },
-                    options: { scales: { y: { beginAtZero: true, ticks: { stepSize: 1 } } } }
-                });
-
-            } catch (error) {
-                console.error("Error cargando datos:", error);
-                alert("Error al conectar con la base de datos. Asegúrate de que el CORS esté configurado.");
-            }
+                new Chart(document.getElementById('chart1'), { type: 'pie', data: { labels: Object.keys(tipos), datasets: [{ data: Object.values(tipos), backgroundColor: ['#FF6384', '#36A2EB', '#FFCE56'] }] } });
+                new Chart(document.getElementById('chart2'), { type: 'bar', data: { labels: Object.keys(mats), datasets: [{ label: 'Averías', data: Object.values(mats), backgroundColor: '#34495e' }] } });
+            } catch (e) { alert("Casi listo... falta el paso del CORS en Supabase."); }
         }
-
-        cargarDashboard();
+        cargar();
     </script>
 </body>
 </html>
-
